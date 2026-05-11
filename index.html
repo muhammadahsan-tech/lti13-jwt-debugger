@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LTI 1.3 JWT Debugger — by Muhammad Ahsan</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10;
+    --bg2: #0f1218;
+    --bg3: #161b24;
+    --bg4: #1e2535;
+    --border: #1f2d44;
+    --border2: #2a3a55;
+    --text: #c9d8f0;
+    --text2: #7a90b0;
+    --text3: #4a5a75;
+    --accent: #3b82f6;
+    --accent2: #1d4ed8;
+    --green: #10b981;
+    --green-dim: #064e3b;
+    --red: #ef4444;
+    --red-dim: #450a0a;
+    --yellow: #f59e0b;
+    --yellow-dim: #451a03;
+    --purple: #a78bfa;
+    --cyan: #22d3ee;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  html { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 14px; line-height: 1.6; }
+
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .logo-badge {
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .header-right a { color: var(--accent); text-decoration: none; }
+  .header-right a:hover { color: var(--cyan); }
+
+  /* MAIN LAYOUT */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    height: calc(100vh - 56px);
+  }
+
+  /* TOP STRIP */
+  .top-strip {
+    grid-column: 1 / -1;
+    padding: 1rem 2rem;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .top-strip-left h1 {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .top-strip-left p { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+
+  /* PANELS */
+  .panel-left {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-right {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .panel-title .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text3);
+  }
+  .dot-green { background: var(--green) !important; }
+  .dot-red { background: var(--red) !important; }
+  .dot-yellow { background: var(--yellow) !important; }
+
+  /* INPUT AREA */
+  .input-area {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+  textarea {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 1.25rem;
+    caret-color: var(--accent);
+  }
+  textarea::placeholder { color: var(--text3); }
+
+  /* OUTPUT AREA */
+  .output-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: var(--text3);
+    text-align: center;
+    padding: 2rem;
+  }
+  .empty-icon {
+    width: 48px;
+    height: 48px;
+    border: 1.5px solid var(--border2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .empty-state h3 { font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--text2); }
+  .empty-state p { font-size: 11px; line-height: 1.7; max-width: 280px; }
+
+  /* STATUS BAR */
+  .status-bar {
+    padding: 6px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 11px;
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .pill-valid { background: var(--green-dim); color: var(--green); }
+  .pill-invalid { background: var(--red-dim); color: var(--red); }
+  .pill-warn { background: var(--yellow-dim); color: var(--yellow); }
+  .pill-neutral { background: var(--bg3); color: var(--text3); }
+
+  /* SECTION CARDS */
+  .section-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp 0.2s ease forwards;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .section-card-header {
+    padding: 8px 12px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-card-header:hover { background: var(--bg4); }
+  .section-name {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-card-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .claim-row {
+    display: grid;
+    grid-template-columns: minmax(180px, auto) 1fr;
+    gap: 8px;
+    align-items: start;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: border-color 0.1s;
+  }
+  .claim-row:hover { border-color: var(--border); background: var(--bg3); }
+  .claim-key {
+    font-size: 11px;
+    color: var(--cyan);
+    font-weight: 500;
+    word-break: break-all;
+  }
+  .claim-val {
+    font-size: 11px;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .claim-val.is-url { color: var(--purple); }
+  .claim-val.is-number { color: var(--yellow); }
+  .claim-val.is-bool { color: var(--green); }
+  .claim-val.is-null { color: var(--text3); font-style: italic; }
+  .claim-val.is-array { color: var(--text2); }
+  .claim-note {
+    grid-column: 1 / -1;
+    font-size: 10px;
+    color: var(--text3);
+    padding: 3px 0 0 0;
+    line-height: 1.5;
+  }
+
+  /* VALIDATION ITEMS */
+  .val-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+  .val-item.pass { background: var(--green-dim); color: var(--green); }
+  .val-item.fail { background: var(--red-dim); color: var(--red); }
+  .val-item.warn { background: var(--yellow-dim); color: var(--yellow); }
+  .val-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+  .val-text { line-height: 1.5; }
+  .val-text strong { font-weight: 600; display: block; margin-bottom: 2px; }
+  .val-text span { opacity: 0.8; }
+
+  /* AI EXPLAIN */
+  .ai-box {
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .ai-box-header {
+    padding: 8px 12px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ai-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--purple);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ai-body { padding: 12px; font-size: 12px; color: var(--text2); line-height: 1.8; }
+  .ai-body.loading { color: var(--text3); }
+  .ai-key { display: inline; color: var(--key); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+  .tab {
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; grid-template-rows: auto auto auto 1fr; height: auto; }
+    .panel-left { min-height: 200px; }
+  }
+
+  .collapsible-body { display: none; }
+  .collapsible-body.open { display: flex; flex-direction: column; gap: 6px; }
+  .chevron { transition: transform 0.2s; font-size: 10px; color: var(--text3); }
+  .chevron.open { transform: rotate(90deg); }
+
+  .count-badge {
+    background: var(--bg4);
+    color: var(--text3);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+
+  .copy-small {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    font-family: var(--mono);
+  }
+  .copy-small:hover { color: var(--text2); border-color: var(--border2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-badge">LTI 1.3</span>
+    JWT Debugger
+  </div>
+  <div class="header-right">
+    <span>by Muhammad Ahsan</span>
+    <a href="https://github.com/muhammadahsan-tech" target="_blank">github →</a>
+  </div>
+</header>
+
+<main>
+  <div class="top-strip">
+    <div class="top-strip-left">
+      <h1>LTI 1.3 JWT Debugger</h1>
+      <p>Paste an LTI 1.3 id_token JWT to decode, validate, and inspect all claims</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="loadSample()">Load sample JWT</button>
+      <button class="btn" onclick="clearAll()">Clear</button>
+      <button class="btn btn-primary" onclick="decodeJWT()">Decode & Validate →</button>
+    </div>
+  </div>
+
+  <div class="panel-left">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="dot" id="input-dot"></span>
+        INPUT — id_token JWT
+      </div>
+      <button class="copy-small" onclick="copyInput()">copy</button>
+    </div>
+    <div class="input-area">
+      <textarea id="jwt-input" placeholder="Paste your LTI 1.3 JWT (id_token) here...
+
+eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi..." spellcheck="false"></textarea>
+    </div>
+    <div class="status-bar" id="input-status">
+      <span id="status-pill" class="status-pill pill-neutral">WAITING</span>
+      <span id="status-msg">Paste a JWT to begin</span>
+    </div>
+  </div>
+
+  <div class="panel-right">
+    <div class="tabs">
+      <div class="tab active" id="tab-claims" onclick="switchTab('claims')">Claims</div>
+      <div class="tab" id="tab-validate" onclick="switchTab('validate')">Validation</div>
+      <div class="tab" id="tab-raw" onclick="switchTab('raw')">Raw JSON</div>
+    </div>
+    <div class="output-area" id="output-claims">
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h3>No JWT decoded yet</h3>
+        <p>Paste an LTI 1.3 id_token in the left panel and click <strong>Decode & Validate</strong></p>
+      </div>
+    </div>
+    <div class="output-area" id="output-validate" style="display:none;"></div>
+    <div class="output-area" id="output-raw" style="display:none;"></div>
+    <div class="status-bar" id="output-status" style="display:none;">
+      <span id="out-pill" class="status-pill pill-neutral">—</span>
+      <span id="out-msg"></span>
+    </div>
+  </div>
+</main>
+
+<script>
+// ─── SAMPLE JWT ────────────────────────────────────────────────────────────
+const SAMPLE_JWT = `eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImNhbnZhcy1wcm9kLWtleS0xIn0.eyJpc3MiOiJodHRwczovL2NhbnZhcy5pbnN0cnVjdHVyZS5jb20iLCJzdWIiOiI0MjAwMDAwMDAxIiwiYXVkIjoiMTIzNDU2Nzg5MDEyMzQ1IiwiaWF0IjoxNzE2NjUwMDAwLCJleHAiOjE3MTY2NTM2MDAsIm5vbmNlIjoiYWJjMTIzZGVmNDU2Iiwibm9uY2VfdmFsaWQiOnRydWUsImh0dHBzOi8vcHVybC5pbXNnbG9iYWwub3JnL3NwZWMvbHRpL2NsYWltL21lc3NhZ2VfdHlwZSI6Ikx0aVJlc291cmNlTGlua1JlcXVlc3QiLCJodHRwczovL3B1cmwuaW1zZ2xvYmFsLm9yZy9zcGVjL2x0aS9jbGFpbS92ZXJzaW9uIjoiMS4zLjAiLCJodHRwczovL3B1cmwuaW1zZ2xvYmFsLm9yZy9zcGVjL2x0aS9jbGFpbS9kZXBsb3ltZW50X2lkIjoiZGVwbG95bWVudC00MiIsImh0dHBzOi8vcHVybC5pbXNnbG9iYWwub3JnL3NwZWMvbHRpL2NsYWltL3RhcmdldF9saW5rX3VyaSI6Imh0dHBzOi8veW91cnRvb2wuY29tL2x0aS9sYXVuY2giLCJodHRwczovL3B1cmwuaW1zZ2xvYmFsLm9yZy9zcGVjL2x0aS9jbGFpbS9jb250ZXh0Ijp7ImlkIjoiY291cnNlLTEwMSIsImxhYmVsIjoiQ1MgMTAxIiwidGl0bGUiOiJJbnRybyB0byBDb21wdXRlciBTY2llbmNlIiwidHlwZSI6WyJodHRwOi8vcHVybC5pbXNnbG9iYWwub3JnL3ZvY2FiL2xpcy92Mi9jb3Vyc2UjQ291cnNlT2ZmZXJpbmciXX0sImh0dHBzOi8vcHVybC5pbXNnbG9iYWwub3JnL3NwZWMvbHRpL2NsYWltL3Jlc291cmNlX2xpbmsiOnsiaWQiOiJsaW5rLTc3NyIsInRpdGxlIjoiV2VlayAxIEFzc2lnbm1lbnQiLCJkZXNjcmlwdGlvbiI6IlN1Ym1pdCB5b3VyIEhlbGxvIFdvcmxkIHByb2dyYW0ifSwiaHR0cHM6Ly9wdXJsLmltc2dsb2JhbC5vcmcvc3BlYy9sdGkvY2xhaW0vcm9sZXMiOlsiaHR0cDovL3B1cmwuaW1zZ2xvYmFsLm9yZy92b2NhYi9saXMvdjIvbWVtYmVyc2hpcCNMZWFybmVyIl0sImh0dHBzOi8vcHVybC5pbXNnbG9iYWwub3JnL3NwZWMvbHRpL2NsYWltL2xhdW5jaF9wcmVzZW50YXRpb24iOnsiZG9jdW1lbnRfdGFyZ2V0IjoiaWZyYW1lIiwicmV0dXJuX3VybCI6Imh0dHBzOi8vY2FudmFzLmV4YW1wbGUuY29tL2NvdXJzZXMvMTAxIn0sImh0dHBzOi8vcHVybC5pbXNnbG9iYWwub3JnL3NwZWMvbHRpLWFncy9jbGFpbS9lbmRwb2ludCI6eyJzY29wZSI6WyJodHRwczovL3B1cmwuaW1zZ2xvYmFsLm9yZy9zcGVjL2x0aS1hZ3Mvc2NvcGUvbGluZWl0ZW0iLCJodHRwczovL3B1cmwuaW1zZ2xvYmFsLm9yZy9zcGVjL2x0aS1hZ3Mvc2NvcGUvc2NvcmUiXSwibGluZWl0ZW1zIjoiaHR0cHM6Ly9jYW52YXMuZXhhbXBsZS5jb20vYXBpL2x0aS9jb3Vyc2VzLzEwMS9saW5lX2l0ZW1zIiwibGluZWl0ZW0iOiJodHRwczovL2NhbnZhcy5leGFtcGxlLmNvbS9hcGkvbHRpL2NvdXJzZXMvMTAxL2xpbmVfaXRlbXMvNDIifSwibmFtZSI6IkFsaWNlIFN0dWRlbnQiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuZWR1IiwicGljdHVyZSI6Imh0dHBzOi8vZXhhbXBsZS5jb20vYXZhdGFyLnBuZyJ9.SIGNATURE_PLACEHOLDER`;
+
+// ─── CLAIM METADATA ─────────────────────────────────────────────────────────
+const CLAIM_INFO = {
+  "iss": { label: "Issuer", note: "The LMS platform issuing this JWT. For Canvas: https://canvas.instructure.com" },
+  "sub": { label: "Subject", note: "Unique identifier for the user within the platform (LMS user ID)" },
+  "aud": { label: "Audience", note: "Your tool's Client ID. Must match what's registered in the LMS Developer Key" },
+  "iat": { label: "Issued At", note: "Unix timestamp when the JWT was issued", isTime: true },
+  "exp": { label: "Expires At", note: "Unix timestamp when the JWT expires (typically 1 hour after iat)", isTime: true },
+  "nonce": { label: "Nonce", note: "One-time value your tool sent during OIDC login. Must be validated and never reused" },
+  "https://purl.imsglobal.org/spec/lti/claim/message_type": { label: "Message Type", note: "LtiResourceLinkRequest = normal launch | LtiDeepLinkingRequest = content selection" },
+  "https://purl.imsglobal.org/spec/lti/claim/version": { label: "LTI Version", note: "Always '1.3.0' for LTI 1.3" },
+  "https://purl.imsglobal.org/spec/lti/claim/deployment_id": { label: "Deployment ID", note: "Identifies which deployment of the tool is launching. One Client ID can have many deployments" },
+  "https://purl.imsglobal.org/spec/lti/claim/target_link_uri": { label: "Target Link URI", note: "Where your tool should redirect after validating the JWT" },
+  "https://purl.imsglobal.org/spec/lti/claim/context": { label: "Context (Course)", note: "Information about the course context — id, label, title, type" },
+  "https://purl.imsglobal.org/spec/lti/claim/resource_link": { label: "Resource Link", note: "The specific link that was clicked — its ID, title, and description" },
+  "https://purl.imsglobal.org/spec/lti/claim/roles": { label: "Roles", note: "User's LTI roles in this context. Learner, Instructor, Administrator, etc." },
+  "https://purl.imsglobal.org/spec/lti/claim/launch_presentation": { label: "Launch Presentation", note: "How the tool should be displayed — iframe, window, etc." },
+  "https://purl.imsglobal.org/spec/lti-ags/claim/endpoint": { label: "AGS Endpoint", note: "Assignment & Grade Services endpoint. Contains lineitems URL and available scopes" },
+  "https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice": { label: "NRPS Endpoint", note: "Names & Role Provisioning Service endpoint for fetching course roster" },
+  "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings": { label: "Deep Linking Settings", note: "Only present in LtiDeepLinkingRequest. Contains return URL and accepted content types" },
+  "name": { label: "Name", note: "User's full name (requires Public privacy level in Canvas)" },
+  "email": { label: "Email", note: "User's email address (requires Public privacy level)" },
+  "picture": { label: "Picture", note: "URL to user's avatar image" },
+};
+
+// ─── LTI REQUIRED CLAIMS ────────────────────────────────────────────────────
+const REQUIRED_CLAIMS = [
+  "iss", "sub", "aud", "iat", "exp", "nonce",
+  "https://purl.imsglobal.org/spec/lti/claim/message_type",
+  "https://purl.imsglobal.org/spec/lti/claim/version",
+  "https://purl.imsglobal.org/spec/lti/claim/deployment_id",
+  "https://purl.imsglobal.org/spec/lti/claim/target_link_uri",
+  "https://purl.imsglobal.org/spec/lti/claim/roles",
+];
+
+let currentPayload = null;
+let currentHeader = null;
+let activeTab = 'claims';
+
+// ─── DECODE ─────────────────────────────────────────────────────────────────
+function decodeJWT() {
+  const input = document.getElementById('jwt-input').value.trim();
+  if (!input) {
+    setStatus('input', 'warn', 'EMPTY', 'No JWT provided');
+    return;
+  }
+
+  const parts = input.split('.');
+  if (parts.length !== 3) {
+    setStatus('input', 'invalid', 'INVALID', `Expected 3 parts (header.payload.signature), got ${parts.length}`);
+    clearOutput();
+    return;
+  }
+
+  let header, payload;
+  try {
+    header = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
+  } catch(e) {
+    setStatus('input', 'invalid', 'INVALID', 'Cannot decode header — invalid base64url');
+    clearOutput();
+    return;
+  }
+  try {
+    const padded = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(padded + '='.repeat((4 - padded.length % 4) % 4));
+    payload = JSON.parse(decoded);
+  } catch(e) {
+    setStatus('input', 'invalid', 'INVALID', 'Cannot decode payload — invalid base64url or JSON');
+    clearOutput();
+    return;
+  }
+
+  currentHeader = header;
+  currentPayload = payload;
+
+  const validations = runValidations(header, payload);
+  const failCount = validations.filter(v => v.type === 'fail').length;
+  const warnCount = validations.filter(v => v.type === 'warn').length;
+
+  if (failCount > 0) {
+    setStatus('input', 'invalid', 'ISSUES', `${failCount} validation failure${failCount > 1 ? 's' : ''}`);
+  } else if (warnCount > 0) {
+    setStatus('input', 'warn', 'WARNINGS', `${warnCount} warning${warnCount > 1 ? 's' : ''}`);
+  } else {
+    setStatus('input', 'valid', 'VALID', 'JWT structure and LTI claims look good');
+  }
+
+  renderClaims(header, payload);
+  renderValidation(validations);
+  renderRaw(header, payload);
+
+  document.getElementById('output-status').style.display = 'flex';
+  const outPill = document.getElementById('out-pill');
+  const outMsg = document.getElementById('out-msg');
+  if (failCount > 0) {
+    outPill.className = 'status-pill pill-invalid';
+    outPill.textContent = `${failCount} FAIL${failCount > 1 ? 'S' : ''}`;
+  } else if (warnCount > 0) {
+    outPill.className = 'status-pill pill-warn';
+    outPill.textContent = `${warnCount} WARN`;
+  } else {
+    outPill.className = 'status-pill pill-valid';
+    outPill.textContent = 'VALID';
+  }
+  outMsg.textContent = `${Object.keys(payload).length} claims decoded — alg: ${header.alg || '?'}`;
+
+  switchTab(activeTab);
+}
+
+// ─── RENDER CLAIMS ───────────────────────────────────────────────────────────
+function renderClaims(header, payload) {
+  const container = document.getElementById('output-claims');
+
+  const standardClaims = {};
+  const ltiClaims = {};
+  const advantageClaims = {};
+  const otherClaims = {};
+
+  const STD = ['iss','sub','aud','iat','exp','nonce','name','email','picture','locale'];
+  const LTI_PREFIX = 'https://purl.imsglobal.org/spec/lti/claim/';
+  const ADV_PREFIX = ['https://purl.imsglobal.org/spec/lti-ags/', 'https://purl.imsglobal.org/spec/lti-nrps/', 'https://purl.imsglobal.org/spec/lti-dl/'];
+
+  for (const [k, v] of Object.entries(payload)) {
+    if (STD.includes(k)) standardClaims[k] = v;
+    else if (k.startsWith(LTI_PREFIX)) ltiClaims[k] = v;
+    else if (ADV_PREFIX.some(p => k.startsWith(p))) advantageClaims[k] = v;
+    else otherClaims[k] = v;
+  }
+
+  container.innerHTML = '';
+
+  // Header card
+  container.appendChild(buildSection('JWT HEADER', header, true, 'open'));
+  if (Object.keys(standardClaims).length) container.appendChild(buildSection('STANDARD CLAIMS (OIDC)', standardClaims, false, 'open'));
+  if (Object.keys(ltiClaims).length) container.appendChild(buildSection('LTI 1.3 CLAIMS', ltiClaims, false, 'open'));
+  if (Object.keys(advantageClaims).length) container.appendChild(buildSection('LTI ADVANTAGE SERVICES', advantageClaims, false, 'open'));
+  if (Object.keys(otherClaims).length) container.appendChild(buildSection('CUSTOM / OTHER CLAIMS', otherClaims, false, 'open'));
+}
+
+function buildSection(title, obj, isHeader, initialState) {
+  const card = document.createElement('div');
+  card.className = 'section-card';
+
+  const header = document.createElement('div');
+  header.className = 'section-card-header';
+
+  const count = Object.keys(obj).length;
+  const isOpen = initialState === 'open';
+
+  header.innerHTML = `
+    <div class="section-name">
+      <span class="dot ${isHeader ? 'dot-yellow' : 'dot-green'}"></span>
+      ${title}
+      <span class="count-badge">${count}</span>
+    </div>
+    <span class="chevron ${isOpen ? 'open' : ''}">▶</span>
+  `;
+
+  const body = document.createElement('div');
+  body.className = `section-card-body collapsible-body ${isOpen ? 'open' : ''}`;
+
+  header.addEventListener('click', () => {
+    const chevron = header.querySelector('.chevron');
+    const open = body.classList.toggle('open');
+    chevron.classList.toggle('open', open);
+  });
+
+  for (const [k, v] of Object.entries(obj)) {
+    body.appendChild(buildClaimRow(k, v));
+  }
+
+  card.appendChild(header);
+  card.appendChild(body);
+  return card;
+}
+
+function buildClaimRow(key, value) {
+  const row = document.createElement('div');
+  row.className = 'claim-row';
+
+  const info = CLAIM_INFO[key] || {};
+  const displayKey = info.label || shortenKey(key);
+
+  const keyEl = document.createElement('div');
+  keyEl.className = 'claim-key';
+  keyEl.textContent = displayKey;
+  keyEl.title = key;
+
+  const valEl = document.createElement('div');
+  valEl.className = 'claim-val';
+
+  let displayVal = value;
+  if (typeof value === 'object' && value !== null) {
+    displayVal = JSON.stringify(value, null, 2);
+    valEl.style.whiteSpace = 'pre-wrap';
+    valEl.style.fontSize = '10px';
+  } else if (typeof value === 'number') {
+    if (info.isTime) {
+      const date = new Date(value * 1000);
+      const now = Date.now();
+      const expired = value * 1000 < now;
+      displayVal = `${value} (${date.toLocaleString()})${expired ? ' ⚠ EXPIRED' : ''}`;
+      valEl.style.color = expired ? 'var(--red)' : 'var(--yellow)';
+    } else {
+      valEl.classList.add('is-number');
+      displayVal = String(value);
+    }
+  } else if (typeof value === 'boolean') {
+    valEl.classList.add('is-bool');
+    displayVal = String(value);
+  } else if (value === null) {
+    valEl.classList.add('is-null');
+    displayVal = 'null';
+  } else if (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))) {
+    valEl.classList.add('is-url');
+  }
+
+  valEl.textContent = displayVal;
+  row.appendChild(keyEl);
+  row.appendChild(valEl);
+
+  if (info.note) {
+    const noteEl = document.createElement('div');
+    noteEl.className = 'claim-note';
+    noteEl.textContent = `ℹ ${info.note}`;
+    row.appendChild(noteEl);
+  }
+
+  return row;
+}
+
+function shortenKey(key) {
+  if (key.includes('/claim/')) return key.split('/claim/').pop();
+  if (key.includes('/')) return key.split('/').pop();
+  return key;
+}
+
+// ─── VALIDATIONS ─────────────────────────────────────────────────────────────
+function runValidations(header, payload) {
+  const results = [];
+  const now = Math.floor(Date.now() / 1000);
+
+  // Algorithm
+  if (!header.alg) {
+    results.push({ type: 'fail', title: 'Missing algorithm (alg)', detail: 'The JWT header must include an alg field. LTI 1.3 requires RS256.' });
+  } else if (!['RS256', 'RS384', 'RS512'].includes(header.alg)) {
+    results.push({ type: 'warn', title: `Algorithm is ${header.alg}`, detail: 'LTI 1.3 requires RSA-based signing (RS256 is standard). Symmetric algorithms like HS256 are not allowed.' });
+  } else {
+    results.push({ type: 'pass', title: `Algorithm: ${header.alg}`, detail: 'RSA algorithm confirmed. Correct for LTI 1.3.' });
+  }
+
+  // Required claims
+  for (const claim of REQUIRED_CLAIMS) {
+    const info = CLAIM_INFO[claim] || {};
+    const label = info.label || claim;
+    if (payload[claim] === undefined || payload[claim] === null) {
+      results.push({ type: 'fail', title: `Missing required claim: ${label}`, detail: `Claim "${claim}" is required by the LTI 1.3 spec but is not present in this JWT.` });
+    } else {
+      results.push({ type: 'pass', title: `Required claim present: ${label}`, detail: '' });
+    }
+  }
+
+  // Expiry
+  if (payload.exp) {
+    if (payload.exp < now) {
+      const ago = Math.floor((now - payload.exp) / 60);
+      results.push({ type: 'fail', title: 'JWT is EXPIRED', detail: `The token expired ${ago} minute${ago !== 1 ? 's' : ''} ago (exp: ${new Date(payload.exp * 1000).toLocaleString()}). Validate launches in real-time — do not reuse tokens.` });
+    } else {
+      const inMin = Math.floor((payload.exp - now) / 60);
+      results.push({ type: 'pass', title: `Token not expired`, detail: `Expires in ~${inMin} minute${inMin !== 1 ? 's' : ''}.` });
+    }
+  }
+
+  // iat vs exp window
+  if (payload.iat && payload.exp) {
+    const window = payload.exp - payload.iat;
+    if (window > 7200) {
+      results.push({ type: 'warn', title: `Token lifetime is ${Math.floor(window/60)} minutes`, detail: 'LTI 1.3 tokens should typically expire within 1 hour. Long-lived tokens increase replay attack risk.' });
+    }
+  }
+
+  // LTI version
+  if (payload['https://purl.imsglobal.org/spec/lti/claim/version']) {
+    const ver = payload['https://purl.imsglobal.org/spec/lti/claim/version'];
+    if (ver !== '1.3.0') {
+      results.push({ type: 'warn', title: `LTI version is "${ver}"`, detail: 'Expected "1.3.0". Non-standard version strings may indicate a misconfigured tool.' });
+    } else {
+      results.push({ type: 'pass', title: 'LTI version: 1.3.0', detail: '' });
+    }
+  }
+
+  // Message type
+  const msgType = payload['https://purl.imsglobal.org/spec/lti/claim/message_type'];
+  if (msgType) {
+    const validTypes = ['LtiResourceLinkRequest', 'LtiDeepLinkingRequest', 'LtiSubmissionReviewRequest'];
+    if (!validTypes.includes(msgType)) {
+      results.push({ type: 'warn', title: `Unknown message_type: "${msgType}"`, detail: `Known types: ${validTypes.join(', ')}` });
+    } else {
+      results.push({ type: 'pass', title: `Message type: ${msgType}`, detail: msgType === 'LtiDeepLinkingRequest' ? 'Deep Linking launch — tool should render content selection UI' : '' });
+    }
+  }
+
+  // Canvas issuer check
+  if (payload.iss) {
+    if (payload.iss === 'https://canvas.instructure.com') {
+      results.push({ type: 'pass', title: 'Issuer: Canvas LMS detected', detail: 'iss matches the standard Canvas issuer for all hosted Canvas instances.' });
+    } else if (payload.iss.includes('moodle') || payload.iss.includes('moodlecloud')) {
+      results.push({ type: 'pass', title: 'Issuer: Moodle detected', detail: `iss: ${payload.iss}` });
+    } else {
+      results.push({ type: 'pass', title: `Issuer: ${payload.iss}`, detail: 'Custom or self-hosted LMS issuer.' });
+    }
+  }
+
+  // Roles check
+  const roles = payload['https://purl.imsglobal.org/spec/lti/claim/roles'];
+  if (roles && Array.isArray(roles)) {
+    const knownRoles = ['Learner', 'Instructor', 'Administrator', 'TeachingAssistant', 'ContentDeveloper', 'Mentor'];
+    const foundRoles = roles.map(r => {
+      const parts = r.split('#');
+      return parts[parts.length - 1];
+    });
+    results.push({ type: 'pass', title: `Roles present: ${foundRoles.join(', ')}`, detail: `${roles.length} role(s) in JWT` });
+  }
+
+  // AGS check
+  const ags = payload['https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'];
+  if (ags) {
+    if (ags.lineitems || ags.lineitem) {
+      results.push({ type: 'pass', title: 'AGS endpoint present', detail: 'Assignment & Grade Services endpoint found. Tool can post scores back to the LMS gradebook.' });
+    }
+    if (ags.scope && ags.scope.includes('https://purl.imsglobal.org/spec/lti-ags/scope/score')) {
+      results.push({ type: 'pass', title: 'AGS score scope granted', detail: 'Tool has permission to write scores to the gradebook.' });
+    }
+  }
+
+  // NRPS check
+  const nrps = payload['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'];
+  if (nrps) {
+    results.push({ type: 'pass', title: 'NRPS endpoint present', detail: 'Names & Role Provisioning Service available. Tool can fetch course roster.' });
+  }
+
+  // Deep Linking check
+  if (msgType === 'LtiDeepLinkingRequest') {
+    const dl = payload['https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings'];
+    if (!dl) {
+      results.push({ type: 'fail', title: 'Deep Linking settings missing', detail: 'LtiDeepLinkingRequest must include deep_linking_settings claim with deep_link_return_url and accept_types.' });
+    } else if (!dl.deep_link_return_url) {
+      results.push({ type: 'fail', title: 'Missing deep_link_return_url', detail: 'The deep_linking_settings claim must include a deep_link_return_url to POST content items back to.' });
+    } else {
+      results.push({ type: 'pass', title: 'Deep Linking settings valid', detail: `Return URL: ${dl.deep_link_return_url}` });
+    }
+  }
+
+  return results;
+}
+
+function renderValidation(validations) {
+  const container = document.getElementById('output-validate');
+  container.innerHTML = '';
+
+  const passes = validations.filter(v => v.type === 'pass').length;
+  const fails = validations.filter(v => v.type === 'fail').length;
+  const warns = validations.filter(v => v.type === 'warn').length;
+
+  // Summary
+  const summary = document.createElement('div');
+  summary.className = 'section-card';
+  summary.innerHTML = `
+    <div class="section-card-header" style="cursor:default;">
+      <div class="section-name">
+        <span class="dot ${fails > 0 ? 'dot-red' : warns > 0 ? 'dot-yellow' : 'dot-green'}"></span>
+        VALIDATION SUMMARY
+      </div>
+      <div style="display:flex;gap:8px;font-size:10px;">
+        <span style="color:var(--green)">✓ ${passes} passed</span>
+        ${warns > 0 ? `<span style="color:var(--yellow)">⚠ ${warns} warnings</span>` : ''}
+        ${fails > 0 ? `<span style="color:var(--red)">✗ ${fails} failed</span>` : ''}
+      </div>
+    </div>
+    <div class="section-card-body collapsible-body open" style="gap:4px;">
+      ${validations.map(v => `
+        <div class="val-item ${v.type}">
+          <div class="val-icon">${v.type === 'pass' ? '✓' : v.type === 'fail' ? '✗' : '⚠'}</div>
+          <div class="val-text">
+            <strong>${v.title}</strong>
+            ${v.detail ? `<span>${v.detail}</span>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  container.appendChild(summary);
+}
+
+function renderRaw(header, payload) {
+  const container = document.getElementById('output-raw');
+  container.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'section-card';
+  card.innerHTML = `
+    <div class="section-card-header" style="cursor:default;">
+      <div class="section-name"><span class="dot dot-yellow"></span>HEADER</div>
+      <button class="copy-small" onclick="copyJSON('raw-header')">copy</button>
+    </div>
+    <div class="section-card-body collapsible-body open">
+      <pre id="raw-header" style="font-size:11px;color:var(--text2);white-space:pre-wrap;word-break:break-all;">${JSON.stringify(header, null, 2)}</pre>
+    </div>
+  `;
+  container.appendChild(card);
+
+  const card2 = document.createElement('div');
+  card2.className = 'section-card';
+  card2.innerHTML = `
+    <div class="section-card-header" style="cursor:default;">
+      <div class="section-name"><span class="dot dot-green"></span>PAYLOAD</div>
+      <button class="copy-small" onclick="copyJSON('raw-payload')">copy</button>
+    </div>
+    <div class="section-card-body collapsible-body open">
+      <pre id="raw-payload" style="font-size:11px;color:var(--text2);white-space:pre-wrap;word-break:break-all;">${JSON.stringify(payload, null, 2)}</pre>
+    </div>
+  `;
+  container.appendChild(card2);
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  ['claims','validate','raw'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`output-${t}`).style.display = t === tab ? 'flex' : 'none';
+  });
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function setStatus(side, type, pill, msg) {
+  if (side === 'input') {
+    const dot = document.getElementById('input-dot');
+    const pillEl = document.getElementById('status-pill');
+    const msgEl = document.getElementById('status-msg');
+    dot.className = `dot ${type === 'valid' ? 'dot-green' : type === 'invalid' ? 'dot-red' : 'dot-yellow'}`;
+    pillEl.className = `status-pill ${type === 'valid' ? 'pill-valid' : type === 'invalid' ? 'pill-invalid' : 'pill-warn'}`;
+    pillEl.textContent = pill;
+    msgEl.textContent = msg;
+  }
+}
+
+function clearOutput() {
+  currentPayload = null;
+  currentHeader = null;
+  document.getElementById('output-claims').innerHTML = `
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">⚠</div>
+      <h3>Could not decode JWT</h3>
+      <p>Check that you've pasted a complete, valid JWT with three dot-separated parts</p>
+    </div>`;
+  document.getElementById('output-validate').innerHTML = '';
+  document.getElementById('output-raw').innerHTML = '';
+  document.getElementById('output-status').style.display = 'none';
+}
+
+function clearAll() {
+  document.getElementById('jwt-input').value = '';
+  setStatus('input', 'neutral', 'WAITING', 'Paste a JWT to begin');
+  document.getElementById('input-dot').className = 'dot';
+  clearOutput();
+}
+
+function loadSample() {
+  document.getElementById('jwt-input').value = SAMPLE_JWT;
+  setStatus('input', 'neutral', 'READY', 'Sample JWT loaded — click Decode & Validate');
+  document.getElementById('input-dot').className = 'dot dot-yellow';
+}
+
+function copyInput() {
+  const val = document.getElementById('jwt-input').value;
+  if (val) navigator.clipboard.writeText(val);
+}
+
+function copyJSON(id) {
+  const el = document.getElementById(id);
+  if (el) navigator.clipboard.writeText(el.textContent);
+}
+
+// Auto-decode on paste
+document.getElementById('jwt-input').addEventListener('paste', () => {
+  setTimeout(decodeJWT, 50);
+});
+</script>
+</body>
+</html>
